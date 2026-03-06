@@ -9,14 +9,15 @@ interface ModalProps {
   children: ReactNode;
   hideHeader?: boolean;
   padding?: string;
+  isHoliday?: boolean;
 }
 
-export const Modal = ({ title, onClose, children, hideHeader = false, padding = "p-8" }: ModalProps) => (
+export const Modal = ({ title, onClose, children, hideHeader = false, padding = "p-8", isHoliday = false }: ModalProps) => (
   <motion.div 
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
     exit={{ opacity: 0 }}
-    className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 backdrop-blur-sm p-4"
+    className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/20 backdrop-blur-md p-4"
     onClick={onClose}
   >
     <motion.div 
@@ -24,7 +25,7 @@ export const Modal = ({ title, onClose, children, hideHeader = false, padding = 
       animate={{ y: 0 }}
       exit={{ y: "100%" }}
       transition={{ type: "spring", damping: 25, stiffness: 200 }}
-      className="w-full max-w-[440px] bg-white rounded-[2.5rem] shadow-2xl overflow-hidden relative"
+      className={`w-full max-w-[440px] rounded-[2.5rem] shadow-2xl overflow-hidden relative transition-all duration-500 ${isHoliday ? 'holiday-glass' : 'bg-white'}`}
       onClick={e => e.stopPropagation()}
     >
       {!hideHeader && (

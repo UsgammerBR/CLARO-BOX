@@ -115,7 +115,16 @@ const AppContent = () => {
     const timer = setTimeout(() => setIsLoading(false), 2000);
     
     const savedData = localStorage.getItem('equipmentData');
-    if (savedData) dispatch({ type: 'SET_DATA', payload: JSON.parse(savedData) });
+    if (savedData) {
+        try {
+            const parsed = JSON.parse(savedData);
+            if (parsed && typeof parsed === 'object') {
+                dispatch({ type: 'SET_DATA', payload: parsed });
+            }
+        } catch (e) {
+            console.error("Failed to parse saved data", e);
+        }
+    }
     
     const fetchServerData = async () => {
         try {
@@ -179,7 +188,14 @@ const AppContent = () => {
     localStorage.setItem('userProfile', JSON.stringify(userProfile));
   }, [userProfile]);
 
-  const currentDayData = useMemo(() => appData[formattedDate] || createEmptyDailyData(), [appData, formattedDate]);
+  const currentDayData = useMemo(() => {
+    const data = appData[formattedDate] || createEmptyDailyData();
+    // Garantir que todas as categorias existam (caso o AppData seja antigo)
+    CATEGORIES.forEach(cat => {
+        if (!data[cat]) data[cat] = [{ id: generateId(), contract: '', serial: '', photos: [], createdAt: Date.now() }];
+    });
+    return data;
+  }, [appData, formattedDate]);
 
   const handleUndo = () => {
     if (deleteMode) {
@@ -218,8 +234,10 @@ const AppContent = () => {
     const currentMonth = currentDate.getMonth();
     const currentYear = currentDate.getFullYear();
     
+    if (!appData || typeof appData !== 'object') return 0;
+
     return Object.entries(appData).reduce((acc: number, [dateStr, day]) => {
-        if (!day) return acc;
+        if (!day || typeof day !== 'object') return acc;
         const d = new Date(dateStr + 'T12:00:00');
         if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
             const dayTotal = Object.values(day).flat().filter(isItemActive).length;
@@ -233,11 +251,13 @@ const AppContent = () => {
     const totals: Record<string, number> = {};
     CATEGORIES.forEach(cat => {
         let count = 0;
-        Object.values(appData).forEach(day => {
-            if (day && day[cat]) {
-                count += day[cat].filter(isItemActive).length;
-            }
-        });
+        if (appData && typeof appData === 'object') {
+            Object.values(appData).forEach(day => {
+                if (day && day[cat] && Array.isArray(day[cat])) {
+                    count += day[cat].filter(isItemActive).length;
+                }
+            });
+        }
         totals[cat] = count;
     });
     return totals;
@@ -483,8 +503,10 @@ const AppContent = () => {
           <EquipmentSection 
             category={activeCategory} 
             items={collapsedCategories[activeCategory] 
-                ? [currentDayData[activeCategory][currentDayData[activeCategory].length - 1]]
-                : currentDayData[activeCategory]
+                ? (currentDayData[activeCategory] && currentDayData[activeCategory].length > 0 
+                    ? [currentDayData[activeCategory][currentDayData[activeCategory].length - 1]] 
+                    : [])
+                : (currentDayData[activeCategory] || [])
             } 
             onUpdate={(item: any) => {
                 addToHistory(appData);
@@ -681,9 +703,9 @@ const AppContent = () => {
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="flex-1 bg-white/50 p-3 rounded-xl border border-blue-100 overflow-hidden">
-                                <p className="text-[8px] font-black text-blue-600 truncate">https://ais-pre-n5gwdogegxuvp3vvliziyx-94973630035.us-west2.run.app</p>
+                                <p className="text-[8px] font-black text-blue-600 truncate">{window.location.origin}</p>
                             </div>
-                            <button onClick={() => { navigator.clipboard.writeText('https://ais-pre-n5gwdogegxuvp3vvliziyx-94973630035.us-west2.run.app'); alert('Link copiado!'); }} className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center active:scale-95 transition-all shadow-md"><IconCopy className="w-4 h-4"/></button>
+                            <button onClick={() => { navigator.clipboard.writeText(window.location.origin); alert('Link copiado!'); }} className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center active:scale-95 transition-all shadow-md"><IconCopy className="w-4 h-4"/></button>
                         </div>
                     </div>
 
